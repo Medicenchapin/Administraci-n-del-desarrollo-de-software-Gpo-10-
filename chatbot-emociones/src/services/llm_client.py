@@ -9,15 +9,14 @@ _SYSTEM_PROMPT = (
 
 client = Together(api_key=settings.togetherai_api_key)
 
-def ask_llm(text: str) -> dict:
+def ask_llm(text: str) -> str:
     resp = client.chat.completions.create(
-        model=settings.model_name,          # "lgai/exaone-3-5-32b-instruct"
+        model=settings.model_name,
         temperature=settings.temperature,
         messages=[
             {"role": "system", "content": _SYSTEM_PROMPT},
             {"role": "user",   "content": text},
         ],
     )
-    # resp.choices[0].message.content ya es un JSON serializado
     return resp.choices[0].message.content
 
