@@ -3,9 +3,14 @@ from together import Together
 from ..config import settings
 
 _SYSTEM_PROMPT = (
-    "Eres un analista de sentimientos. Devuelve JSON con "
-    "`label` (positive|negative|neutral) y `explanation` breve."
+    "Eres un analista de sentimientos. Responde ÚNICAMENTE con un JSON válido, "
+    "sin texto adicional ni bloques markdown. El JSON debe tener:\n"
+    "- label: positive | negative | neutral\n"
+    "- explanation: frase breve en español"
 )
+
+
+
 
 client = Together(api_key=settings.togetherai_api_key)
 
