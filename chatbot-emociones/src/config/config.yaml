@@ -1,0 +1,7 @@
+# =================================================
+# Configuración para text_extractor.py
+# =================================================
+
+pdfs:
+  paths:
+    - chatbot-emociones/data/pdfs/Marianela.pdf
