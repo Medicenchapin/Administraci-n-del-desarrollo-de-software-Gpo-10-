@@ -4,9 +4,10 @@ import os
 from utils.logger_config import LoggerConfig
 from ingest.dataloader import DocumentLoader
 from ingest.chunker import DocumentChunker
+from ingest.chroma_db_manager import ChromaDBManager
 from langchain.document_loaders import PyPDFLoader
 
-RECREATE_CHROMA_DB = False
+RECREATE_CHROMA_DB = True
 
 def main():
     try:
@@ -20,6 +21,13 @@ def main():
         # Step 3> Se divide los documentos en fragmentos
         chunker = DocumentChunker(chunk_size=1000, chunk_overlap=200)
         split_documents = chunker.split_documents(documents)
+
+        # Step 4> Se crea la base de datos Chroma con los fragmentos
+        # Note: Ensure using ChomaDB verson chromadb==0.4.15
+        chroma_db_manager = ChromaDBManager(
+            path="./chatbot-emociones/src/chromadb", 
+            recreate_chroma_db=RECREATE_CHROMA_DB)
+        vectorstore = chroma_db_manager.create_embeddings(split_documents)
 
     except Exception as e:
         logger.error(f"[bold red]An error occurred during startup: {e}[/bold red]")
