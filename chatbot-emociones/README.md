@@ -1,117 +1,137 @@
 # Chatbot‑Emociones
 
-## Descripción general
+> **Proyecto:***
+> Sistema de clasificación emocional de texto con LLM (Together AI)
 
-**Chatbot‑Emociones** es un prototipo que utiliza modelos de lenguaje de gran tamaño (LLM) disponibles en TogetherAI para identificar la **emoción predominante** en un texto (positiva, negativa o neutral) y devolver una breve explicación en lenguaje natural. La interfaz está construida con **Streamlit** para ofrecer una experiencia web ligera y de rápido despliegue.
+## Equipo
 
-El proyecto está diseñado para evolucionar por etapas. En esta primera fase (MVP) se cubre la **clasificación de sentimientos**. Fases posteriores añadirán limpieza avanzada de datos, resúmenes de texto y visualizaciones interactivas.
+| Alumno                          | Matrícula |
+| ------------------------------- | --------- |
+| Gustavo Adolfo Morales García   | A00828432 |
+| Luis Axel González Hernández    | A01795321 |
+| Ignacio José Aguilar García     | A00819762 |
+| Edwin David Hernández Alejandre | A01794692 |
 
 ---
 
-## Estructura del repositorio
+## ¿Qué hace este proyecto?
 
+Chatbot‑Emociones es un prototipo académico que recibe texto en español, invoca un modelo de lenguaje de alto rendimiento hospedado en **Together AI** (modelo gratuito *EXAONE 3.5 32B Instruct*) y devuelve:
+
+```json
+{
+  "label": "positive | negative | neutral",
+  "explanation": "frase breve en español"
+}
 ```
+
+Se entrega una **UI en Streamlit** para pruebas manuales y un conjunto de **tests con PyTest** para asegurar que la lógica central no se rompa durante futuras iteraciones. En próximos sprints se añadirá recuperación semántica (embeddings + ChromaDB) y resumen automático.
+
+---
+
+## Arquitectura de carpetas
+
+```text
 chatbot-emociones/
 │
 ├── app/                     # Capa de presentación (Streamlit)
-│   └── main.py              # Página principal con formulario de entrada y despliegue de resultados
+│   └── main.py              # Página principal con formulario y resultados
 │
 ├── src/                     # Lógica de negocio y servicios auxiliares
 │   ├── __init__.py
-│   ├── config.py            # Carga y validación de variables de entorno (pydantic.BaseSettings)
+│   ├── config.py            # Carga y validación de variables de entorno
 │   ├── data/
-│   │   └── preprocessing.py # Funciones de limpieza y normalización (implementación futura)
+│   │   └── preprocessing.py # (planificado para iteraciones futuras)
 │   ├── services/
 │   │   ├── __init__.py
-│   │   └── llm_client.py    # Wrapper de la API de TogetherAI con gestión de re‑intentos
+│   │   └── llm_client.py    # Wrapper de la API de TogetherAI
 │   ├── models/
 │   │   ├── __init__.py
-│   │   └── emotion_classifier.py # Orquestador que llama a llm_client y gestiona la respuesta
+│   │   └── emotion_classifier.py # Orquestador de clasificación
 │   └── utils/
 │       ├── __init__.py
-│       └── logger_config.py # Configuración centralizada de logging (RotatingFileHandler)
+│       └── logger_config.py # Logging centralizado (planeado)
 │
-├── tests/
-│   └── test_emotion_classifier.py # Pruebas unitarias con pytest para la lógica de clasificación
+├── tests/                   # Pruebas unitarias
+│   └── test_emotion_classifier.py
 │
-├── requirements.txt         # Dependencias de Python (pip)
-├── .env.example             # Plantilla de variables de entorno (TOGETHERAI_API_KEY, etc.)
-└── README.md                # Documentación de uso
+├── requirements.txt         # Dependencias Python
+├── .env.example             # Plantilla de variables de entorno
+└── README.md                # Este documento
 ```
 
 ---
 
-## Detalle de archivos clave
+## Guía rápida de instalación y prueba
 
-| Archivo                                | Función                                                                                     |
-| -------------------------------------- | ------------------------------------------------------------------------------------------- |
-| **app/main.py**                        | Renderiza la UI en Streamlit: recibe texto, invoca al clasificador y muestra el resultado.  |
-| **src/config.py**                      | Encapsula parámetros de configuración: `TOGETHERAI_API_KEY`, `MODEL_NAME`, `TEMPERATURE`.   |
-| **src/services/llm\_client.py**        | Implementa `ask_llm(text)`: prepara el prompt, invoca la API de TogetherAI y devuelve JSON. |
-| **src/models/emotion\_classifier.py**  | Clase `EmotionClassifier` que valida la respuesta, controla errores y define etiquetas.     |
-| **src/utils/logger\_config.py**        | Inicializa un logger único para todo el proyecto usando formato estructurado.               |
-| **tests/test\_emotion\_classifier.py** | Pruebas unitarias básicas para etiquetas positivas y negativas con pytest.                  |
+> Requisitos previos: **Python ≥ 3.10** y **Git** instalados.
 
----
-
-## Requisitos y dependencias
-
-Las dependencias principales se listan en `requirements.txt`. Entre las más relevantes:
-
-* `together`   – cliente oficial de TogetherAI.
-* `streamlit`  – interfaz web rápida.
-* `pydantic`   – validación de configuración.
-* `pytest`     – ejecución de pruebas unitarias.
-
-Para preparar un entorno mínimo:
+### 1 — Clonar el repositorio
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate    # Windows: venv\Scripts\activate
+git clone https://github.com/<tu‑org>/chatbot-emociones.git
+cd chatbot-emociones
+```
+
+### 2 — Crear y activar entorno virtual
+
+```bash
+python3 -m venv .venv        # crear venv
+source .venv/bin/activate    # activar (Windows: .venv\Scripts\activate)
+```
+
+### 3 — Instalar dependencias
+
+```bash
 pip install -r requirements.txt
 ```
 
----
+### 4 — Configurar variables de entorno
 
-## Configuración
+```bash
+cp .env.example .env         # crea archivo local
+# abre .env y pega tu clave gratuita de TogetherAI
+# TOGETHERAI_API_KEY="xxxxxxxxxxxx"
+```
 
-1. Copie `.env.example` a `.env` y añada sus credenciales:
+| Variable             | Ejemplo                        | Descripción                      |
+| -------------------- | ------------------------------ | -------------------------------- |
+| `TOGETHERAI_API_KEY` | `together···abc`               | Clave desde dashboard TogetherAI |
+| `MODEL_NAME`         | `lgai/exaone-3-5-32b-instruct` | Modelo gratuito recomendado      |
+| `TEMPERATURE`        | `0.0`                          | Salida determinista              |
 
-   ```ini
-   TOGETHERAI_API_KEY="together...XYZ"
-   MODEL_NAME="lgai/exaone-3-5-32b-instruct"
-   TEMPERATURE=0.0
-   ```
-2. Asegúrese de que el archivo `.env` se encuentre en la raíz del proyecto.
+### 5 — Ejecutar pruebas unitarias
 
----
+```bash
+pytest -q          # debe mostrar ".. [100%] 2 passed"
+```
 
-## Ejecución local
+### 6 — Probar interfaz Streamlit
 
 ```bash
 streamlit run app/main.py
 ```
 
-Abra el navegador en la URL que Streamlit indique (por defecto [http://localhost:8501](http://localhost:8501)). Ingrese un texto y presione **Analizar**.
+Visita [http://localhost:8501](http://localhost:8501), escribe un texto y pulsa **Analizar**.
 
 ---
 
-## Pruebas
+## Cómo funciona internamente
 
-```bash
-pytest -q
-```
-
-Estas pruebas verifican que el clasificador devuelve una etiqueta válida y una explicación. Se recomienda extenderlas con fixtures que simulen `ask_llm` para no consumir tokens en cada ejecución.
+1. `app/main.py` captura la entrada del usuario y la envía a `EmotionClassifier`.
+2. `EmotionClassifier` llama a `ask_llm()` en `src/services/llm_client.py`.
+3. `llm_client` construye el prompt y envía la petición a Together AI.
+4. La respuesta se limpia (eliminando posibles bloques \`\`\`json) y se parsea a JSON.
+5. Se validan la etiqueta y la explicación; cualquier error devuelve un resultado *neutral* seguro.
 
 ---
 
-## Próximos pasos de desarrollo
 
-* **Preprocesamiento avanzado** (`src/data/preprocessing.py`): manejo de emojis, normalización y spell‑check.
-* **Persistencia**: almacenar historiales en SQLite o PostgreSQL.
-* **Resúmenes de texto**: segundo módulo LLM (fase 2).
-* **Visualización**: gráficos interactivos con Altair o Plotly.
-* **CI/CD**: configurar GitHub Actions para ejecutar `pytest` y desplegar a Streamlit Cloud.
+## Créditos
 
-Con esta documentación, el proyecto cuenta con una base sólida y modular que facilita la colaboración y futuras iteraciones.
+Trabajo desarrollado como parte de la asignatura *Administración del Desarrollo de Software* (Gpo 10).
+
+* Gustavo A. Morales García — A00828432
+* Luis Axel González Hernández — A01795321
+* Ignacio José Aguilar García — A00819762
+* Edwin David Hernández Alejandre — A01794692
