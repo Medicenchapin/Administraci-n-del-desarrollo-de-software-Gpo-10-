@@ -42,10 +42,10 @@ class LoggerConfig:
                         show_level=True, 
                         show_path=True),
             level=log_level,
-            format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level}</level> | <cyan>{message}</cyan>",
+            format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <bold><level>{level}</level></bold> | <cyan>{message}</cyan>",
         )
 
-        logger.info("Logger configured successfully.")
+        logger.info("[cyan]Logger configured successfully.[/cyan]")
 
 if __name__ == "__main__":
     # Example usage

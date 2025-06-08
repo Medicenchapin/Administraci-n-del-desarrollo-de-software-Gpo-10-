@@ -1,5 +1,6 @@
 import os
 import sys
+from loguru import logger
 
 # Agregar la raíz del proyecto al sys.path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -26,6 +27,7 @@ class DocumentLoader:
             A dictionary with the application configuration.
         """
         # Construir la ruta al archivo 'config.yaml' en el directorio raíz del proyecto
+        logger.info("[cyan]Loading configuration from config.yaml...[cyan]")
         config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config', 'config.yaml'))
         with open(config_path) as stream:
             try:
@@ -38,11 +40,12 @@ class DocumentLoader:
         pdf_paths = config.get("pdfs", {}).get("paths", [])
         pdf_list = []
         for path in pdf_paths:
-            print(f"Starting to load the PDF file from {path}...")
+            logger.info(f"[cyan]Starting to load the PDF file from {path}...[/cyan]")
             loader = self.pdf_loader_cls(path)
-            print("Loader created, starting to load data...")
+            logger.success("[bold green]Loader created, starting to load data...[/bold green]")
             pdf_list.extend(loader.load())
-            print("Data loaded successfully")
+            logger.success("[bold green]Data loaded successfully[/bold green]")
+            logger.success(f"[bold green]Loaded {len(pdf_list)} documents.[/bold green]")
         return pdf_list
 
 
