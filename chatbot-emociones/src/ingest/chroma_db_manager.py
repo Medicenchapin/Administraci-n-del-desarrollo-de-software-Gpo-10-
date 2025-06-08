@@ -104,7 +104,8 @@ class ChromaDBManager:
             return Chroma.from_texts(
                 texts=texts,
                 embedding=embeddings,
-                collection_name=collection_name
+                collection_name=collection_name,
+                collection_metadata={"hnsw:space": "cosine"}  # para similitud coseno
             )
         else:
             logger.info("[green]Loading Chroma DB[/green]")
