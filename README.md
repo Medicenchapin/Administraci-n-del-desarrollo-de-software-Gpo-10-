@@ -1,1 +1,0 @@
-# Administraci-n-del-desarrollo-de-software-Gpo-10-
