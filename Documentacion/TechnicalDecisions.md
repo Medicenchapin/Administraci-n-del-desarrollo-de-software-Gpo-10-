@@ -55,15 +55,7 @@
 
 ---
 
-## 4 · Consideraciones Futuras
-
-- **LLM**: Together AI (pendiente de API key en `.env`) para clasificación emocional.
-- **UI**: FastAPI como backend, con frontend (e.g., Streamlit) para interacción.
-- **Validación**: PyTest para verificar chunks, embeddings, y consultas RAG.
-
----
-
-## 5 · Ejecución Paso-a-Paso
+## 4 · Ejecución Paso-a-Paso
 
 ```bash
 # 1. Clona el repo y entra
