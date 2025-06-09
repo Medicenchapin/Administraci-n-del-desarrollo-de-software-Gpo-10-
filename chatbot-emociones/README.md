@@ -1,6 +1,6 @@
 # Chatbot‑Emociones
 
-> **Proyecto:***
+> **Proyecto:**
 > Sistema de clasificación emocional de texto con LLM (Together AI)
 
 ## Equipo
@@ -14,124 +14,133 @@
 
 ---
 
-## ¿Qué hace este proyecto?
+# Chatbot‑Emociones · Pipeline de Ingesta & Embeddings
 
-Chatbot‑Emociones es un prototipo académico que recibe texto en español, invoca un modelo de lenguaje de alto rendimiento hospedado en **Together AI** (modelo gratuito *EXAONE 3.5 32B Instruct*) y devuelve:
-
-```json
-{
-  "label": "positive | negative | neutral",
-  "explanation": "frase breve en español"
-}
-```
-
-Se entrega una **UI en Streamlit** para pruebas manuales y un conjunto de **tests con PyTest** para asegurar que la lógica central no se rompa durante futuras iteraciones. En próximos sprints se añadirá recuperación semántica (embeddings + ChromaDB) y resumen automático.
+> **Sprint 1 – Foco exclusivo en ingesta**  – Cargamos *Marianela.pdf*, lo fragmentamos, generamos *embeddings* y los almacenamos en ChromaDB.
+> Aún no interviene ninguna UI ni modelo LLM externo.
 
 ---
 
-## Arquitectura de carpetas
+## 1 · ¿Por qué *Marianela*?
 
-```text
+*Marianela* (Benito Pérez Galdós, 1878) narra emociones intensas — compasión, esperanza, injusticia.
+Eso lo convierte en un texto ideal para:
+
+1. **Probar segmentación**: capítulos largos + diálogos cortos.
+2. **Validar embeddings**: semántica clara; chunks similares deben quedar cerca en el espacio vectorial.
+3. **Próximas fases**: servirá como corpus para clasificación de emoción y resúmenes.
+
+---
+
+## 2 · Arquitectura general
+
+```mermaid
+flowchart TD
+    %% Config y logging
+    C(config.yaml):::file --> L[DocumentLoader]
+    style C fill:#f9f,stroke:#333,stroke-width:1px
+
+    %% Ingesta
+    subgraph Ingesta
+        L --> P[PyPDFLoader]:::ext
+        P --> DL[LangChain Doc]:::obj
+        DL --> S[RecursiveCharacterTextSplitter]
+        S -->|chunks| EMB[Sentence‑Transformers ("all‑MiniLM‑L6-v2")]
+        EMB -->|vectors| DB[(ChromaDB collection)]
+    end
+
+    classDef ext fill:#fff,border:2px dashed #aaa
+    classDef obj fill:#eef,border:#668
+```
+
+### 2.1 Flujo paso a paso
+
+El proceso arranca cuando config.yaml suministra la ruta de Marianela.pdf y los parámetros de chunking. El DocumentLoader usa esa ruta para invocar PyPDFLoader y transforma cada página en un objeto Document que guarda el contenido y metadatos como el número de página. A continuación, el DocumentChunker recibe la lista de documentos y aplica un divisor recursivo de caracteres para generar fragmentos de 1 000 caracteres con un traslape de 200, asegurando que cada trozo conserva contexto suficiente para futuros análisis. Cada uno de estos fragmentos se envía luego al módulo de embeddings de LangChain¹, basado en paraphrase-MiniLM-L6-v2, que produce vectores en un espacio de 384 dimensiones. Finalmente, el ChromaDBManager toma cada vector junto con su texto y metadatos asociados y los indexa en ChromaDB usando un índice HNSW (M=32, ef=200), de forma que sea posible buscar similitudes semánticas de manera eficiente.	A lo largo de todo este flujo, Loguru registra cada fase (carga, chunking, generación y persistencia), tanto en consola como en el fichero rotativo logs/app.log, proporcionando trazabilidad completa y facilitando la depuración y auditoría del pipeline.
+
+
+| # | Paso                                             | Tecnología                   | Salida                          | Logs                              |
+| - | ------------------------------------------------ | ---------------------------- | ------------------------------- | --------------------------------- |
+| 1 | `DocumentLoader` lee **config.yaml**             | PyYAML                       | lista de rutas                  | `[INFO] Loading configuration…`   |
+| 2 | Cada ruta se carga con **`PyPDFLoader`**         | LangChain Community          | `Langchain Document`            | `[SUCCESS] Loaded 117 documents.` |
+| 3 | `RecursiveCharacterTextSplitter` divide cada doc | LangChain Text‑Splitters     | 405 chunks                      | `[INFO] Split into 405 chunks.`   |
+| 4 | **Sentence‑Transformers** genera embeddings      | `all‑MiniLM‑L6-v2`           | matriz (n\_chunks × 384 floats) | `[INFO] Creating embeddings…`     |
+| 5 | **ChromaDB** persiste la colección               | HNSW index + SQLite metadata | carpeta `src/chromadb/`         | `[SUCCESS] All chunks persisted.` |
+
+---
+
+## 3 · Detalle de tecnologías
+
+| Capa             | Librería                               | Función clave                             | Notas                                                                |
+| ---------------- | -------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------- |
+| **Cargador**     | `langchain_community.document_loaders` | `PyPDFLoader`                             | Extrae texto página ↦ `Document(page_content, metadata)`             |
+| **Splitter**     | `langchain-text-splitters`             | `RecursiveCharacterTextSplitter`          | Breakpoint en frases y párrafos → chunks ≈ 1000 chars con solape 200 |
+| **Embeddings**   | `sentence-transformers`                | `all-MiniLM-L6-v2` (384 dims, 61M params) | Ligero, open‑source, suficiente para pruebas locales                 |
+| **Vector Store** | `chromadb` 0.4.15                      | `Chroma` + HNSW (M=16, ef=200)            | Persistencia en disco + API de similitud `query(k)`                  |
+| **Logging**      | `loguru` + `rich`                      | `LoggerConfig` central                    | Color + rotación diaria en `logs/app.log`                            |
+
+### Por qué LangChain
+
+* **Modularidad** – separa loaders, splitters, embeddings y stores.
+* **Future‑proof** – la misma abstracción permitirá añadir RAG y LLM chains en Sprint 2.
+
+### Por qué ChromaDB
+
+* **Persistencia local** simple (SQLite + parquet).
+* **HNSW**: búsqueda vectorial O(log n) con recall alto.
+* **Facilidad de actualización**: `collection.delete()` y re‑ingesta.
+
+---
+
+## 4 · Ejecución paso‑a‑paso
+
+```bash
+# 1. Clona el repo y entra
+$ git clone https://github.com/<org>/chatbot-emociones.git
+$ cd chatbot-emociones
+
+# 2. Crea entorno Conda + instala deps
+$ conda create -n chatbot-env python=3.11 -y
+$ conda activate chatbot-env
+$ pip install -r requirements.txt
+
+# 3. Lanza la ingesta (solo una vez)
+$ python -m src.main
+# → logs/      # traza completa
+# → src/chromadb/   # colección persistente
+```
+
+> **Re‑ejecución rápida**: establece `RECREATE_CHROMA_DB=False` en `src/main.py` para cargar la BD sin regenerar embeddings.
+
+---
+
+## 5 · Carpetas relevantes
+
+```
 chatbot-emociones/
 │
-├── app/                     # Capa de presentación (Streamlit)
-│   └── main.py              # Página principal con formulario y resultados
+├── config.yaml                # rutas de PDFs + parámetros
+├── data/pdfs/Marianela.pdf    # corpus base
 │
-├── src/                     # Lógica de negocio y servicios auxiliares
-│   ├── __init__.py
-│   ├── config.py            # Carga y validación de variables de entorno
-│   ├── data/
-│   │   └── preprocessing.py # (planificado para iteraciones futuras)
-│   ├── services/
+├── src/
+│   ├── main.py                # punto de entrada
+│   ├── ingest/
 │   │   ├── __init__.py
-│   │   └── llm_client.py    # Wrapper de la API de TogetherAI
-│   ├── models/
-│   │   ├── __init__.py
-│   │   └── emotion_classifier.py # Orquestador de clasificación
-│   └── utils/
-│       ├── __init__.py
-│       └── logger_config.py # Logging centralizado (planeado)
+│   │   ├── dataloader.py      # lee config y PDF
+│   │   ├── chunker.py         # splitter
+│   │   └── chroma_db_manager.py# embeddings + Chroma
+│   └── utils/logger_config.py # Loguru + Rich
 │
-├── tests/                   # Pruebas unitarias
-│   └── test_emotion_classifier.py
-│
-├── requirements.txt         # Dependencias Python
-├── .env.example             # Plantilla de variables de entorno
-└── README.md                # Este documento
+└── logs/app.log               # bitácora rotativa
 ```
 
 ---
 
-## Guía rápida de instalación y prueba
+## 6 · Roadmap inmediato
 
-> Requisitos previos: **Python ≥ 3.10** y **Git** instalados.
-
-### 1 — Clonar el repositorio
-
-```bash
-git clone https://github.com/<tu‑org>/chatbot-emociones.git
-cd chatbot-emociones
-```
-
-### 2 — Crear y activar entorno virtual
-
-```bash
-python3 -m venv .venv        # crear venv
-source .venv/bin/activate    # activar (Windows: .venv\Scripts\activate)
-```
-
-### 3 — Instalar dependencias
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4 — Configurar variables de entorno
-
-```bash
-cp .env.example .env         # crea archivo local
-# abre .env y pega tu clave gratuita de TogetherAI
-# TOGETHERAI_API_KEY="xxxxxxxxxxxx"
-```
-
-| Variable             | Ejemplo                        | Descripción                      |
-| -------------------- | ------------------------------ | -------------------------------- |
-| `TOGETHERAI_API_KEY` | `together···abc`               | Clave desde dashboard TogetherAI |
-| `MODEL_NAME`         | `lgai/exaone-3-5-32b-instruct` | Modelo gratuito recomendado      |
-| `TEMPERATURE`        | `0.0`                          | Salida determinista              |
-
-### 5 — Ejecutar pruebas unitarias
-
-```bash
-pytest -q          # debe mostrar ".. [100%] 2 passed"
-```
-
-### 6 — Probar interfaz Streamlit
-
-```bash
-streamlit run app/main.py
-```
-
-Visita [http://localhost:8501](http://localhost:8501), escribe un texto y pulsa **Analizar**.
+1. **Dataset de pruebas**: CSV con chunk → etiqueta de emoción para medir *recall* de embeddings.
+2. **Validación automática**: PyTest + fixtures que verifiquen nº de chunks, shape de embeddings y consultas de similitud.
+3. **Integración LLM (Sprint 2)**: añadir un chain de LangChain que pase los chunks relevantes al LLM y devuelva clasificación + justificación.
 
 ---
 
-## Cómo funciona internamente
-
-1. `app/main.py` captura la entrada del usuario y la envía a `EmotionClassifier`.
-2. `EmotionClassifier` llama a `ask_llm()` en `src/services/llm_client.py`.
-3. `llm_client` construye el prompt y envía la petición a Together AI.
-4. La respuesta se limpia (eliminando posibles bloques \`\`\`json) y se parsea a JSON.
-5. Se validan la etiqueta y la explicación; cualquier error devuelve un resultado *neutral* seguro.
-
----
-
-
-## Créditos
-
-Trabajo desarrollado como parte de la asignatura *Administración del Desarrollo de Software* (Gpo 10).
-
-* Gustavo A. Morales García — A00828432
-* Luis Axel González Hernández — A01795321
-* Ignacio José Aguilar García — A00819762
-* Edwin David Hernández Alejandre — A01794692
+© Equipo ADS Gpo‑10 (Gustavo A. Morales, Luis A. González, Ignacio J. Aguilar, Edwin D. Hernández) – Jun 2025
