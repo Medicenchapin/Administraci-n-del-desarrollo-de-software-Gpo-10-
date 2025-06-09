@@ -60,14 +60,14 @@ flowchart TD
 5. Almacenamiento: Los vectores se indexan en ChromaDB con HNSW (M=32, ef=200) para búsqueda semántica.
 6. Futuro RAG: Un motor de consulta recuperará chunks relevantes para el LLM.
 7. Interacción: La UI presentará clasificaciones emocionales (pendiente).
-| # | Paso | Tecnología | Salida | Logs |
-|---|---|---|---|---|
-| 1 | DocumentLoader lee config.yaml | PyYAML | lista de rutas | [INFO] Loading configuration… |
-| 2 | Carga con PyPDFLoader | LangChain Community | LangChain Document | [SUCCESS] Loaded 117 documents. |
-| 3 | División con RecursiveCharacterTextSplitter | LangChain Text-Splitters | 405 chunks | [INFO] Split into 405 chunks. |
-| 4 | Embeddings con SentenceTransformers | all-MiniLM-L6-v2 | matriz (405 × 384 floats) | [INFO] Creating embeddings… |
-| 5 | Persistencia en ChromaDB | HNSW index + SQLite | carpeta src/chromadb/ | [SUCCESS] All chunks persisted. |
-| 6 | Consulta RAG (futuro) | LangChain RAG | chunks relevantes | (pendiente) |
-| 7 | Respuesta UI (futuro) | FastAPI + frontend | clasificación emocional | (pendiente) |
+# | **Paso** | Tecnología | Salida | Logs
+---|---|---|---|---
+1 | **DocumentLoader lee config.yaml** | PyYAML | lista de rutas | [INFO] Loading configuration…
+2 | **Carga con PyPDFLoader** | LangChain Community | LangChain Document | [SUCCESS] Loaded 117 documents.
+3 | **División con RecursiveCharacterTextSplitter** | LangChain Text-Splitters | 405 chunks | [INFO] Split into 405 chunks.
+4 | **Embeddings con SentenceTransformers** | all-MiniLM-L6-v2 | matriz (405 × 384 floats) | [INFO] Creating embeddings…
+5 | **Persistencia en ChromaDB** | HNSW index + SQLite | carpeta src/chromadb/ | [SUCCESS] All chunks persisted.
+6 | **Consulta RAG (futuro)** | LangChain RAG | chunks relevantes | (pendiente)
+7 | **Respuesta UI (futuro)** | FastAPI + frontend | clasificación emocional | (pendiente)
 
 © Equipo ADS Gpo-10 (Gustavo A. Morales, Luis A. González, Ignacio J. Aguilar, Edwin D. Hernández) – Jun 2025

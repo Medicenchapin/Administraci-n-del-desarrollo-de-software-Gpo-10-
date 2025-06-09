@@ -1,7 +1,4 @@
 
-### 2. README_TechnicalDecisions.md (SCRUM-32: Documenting Technical Decisions)
-
-```markdown
 # Chatbot-Emociones · Decisiones Técnicas Iniciales
 
 > **Proyecto:** Sistema de clasificación emocional de texto con LLM (Together AI)  
